@@ -1,46 +1,33 @@
-import { useState } from "react";
+import { useState } from 'react';
 
 function Square({ value, onSquareClick }) {
-
   return (
-    <button
-      className="square"
-      onClick={onSquareClick}
-    >
+    <button className="square" onClick={onSquareClick}>
       {value}
     </button>
   );
 }
 
-
-export default function Board() {
-  //状态提升到母组件
-  const [squares, setSquares] = useState(Array(9).fill(null))
-  const [xIsNext, setxIsNext] = useState(true)
+function Board({ xIsNext, squares, onPlay }) {
   function handleClick(i) {
-    //setting only empty area can add square
-    if (squares[i] || calculaterWinner(squares)) {
-      return
+    if (calculateWinner(squares) || squares[i]) {
+      return;
     }
-
-    const nextSquares = squares.slice()
-    //judge x or o
+    const nextSquares = squares.slice();
     if (xIsNext) {
-      nextSquares[i] = 'X'
+      nextSquares[i] = 'X';
     } else {
-      nextSquares[i] = 'O'
+      nextSquares[i] = 'O';
     }
-
-    setSquares(nextSquares)
-    setxIsNext(!xIsNext)
+    onPlay(nextSquares);
   }
 
-  const winner = calculaterWinner(squares)
-  let status
+  const winner = calculateWinner(squares);
+  let status;
   if (winner) {
-    status = 'winner:' + '' + winner
+    status = 'Winner: ' + winner;
   } else {
-    status = 'nextPlayer:' + '' + (xIsNext ? 'X' : 'O')
+    status = 'Next player: ' + (xIsNext ? 'X' : 'O');
   }
 
   return (
@@ -65,8 +52,49 @@ export default function Board() {
   );
 }
 
-//设置获胜者函数
-function calculaterWinner(squares) {
+export default function Game() {
+  const [history, setHistory] = useState([Array(9).fill(null)]);
+  const [currentMove, setCurrentMove] = useState(0);
+  const xIsNext = currentMove % 2 === 0;
+  const currentSquares = history[currentMove];
+
+  function handlePlay(nextSquares) {
+    const nextHistory = [...history.slice(0, currentMove + 1), nextSquares];
+    setHistory(nextHistory);
+    setCurrentMove(nextHistory.length - 1);
+  }
+
+  function jumpTo(nextMove) {
+    setCurrentMove(nextMove);
+  }
+
+  const moves = history.map((squares, move) => {
+    let description;
+    if (move > 0) {
+      description = 'Go to move #' + move;
+    } else {
+      description = 'Go to game start';
+    }
+    return (
+      <li key={move}>
+        <button onClick={() => jumpTo(move)}>{description}</button>
+      </li>
+    );
+  });
+
+  return (
+    <div className="game">
+      <div className="game-board">
+        <Board xIsNext={xIsNext} squares={currentSquares} onPlay={handlePlay} />
+      </div>
+      <div className="game-info">
+        <ol>{moves}</ol>
+      </div>
+    </div>
+  );
+}
+
+function calculateWinner(squares) {
   const lines = [
     [0, 1, 2],
     [3, 4, 5],
@@ -75,14 +103,13 @@ function calculaterWinner(squares) {
     [1, 4, 7],
     [2, 5, 8],
     [0, 4, 8],
-    [2, 4, 6]
+    [2, 4, 6],
   ];
-
   for (let i = 0; i < lines.length; i++) {
-    const [a, b, c] = lines[i]
+    const [a, b, c] = lines[i];
     if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) {
-      return squares[a]
+      return squares[a];
     }
   }
-  return null
+  return null;
 }
